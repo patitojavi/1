@@ -12,25 +12,7 @@ import es.altia.bne.postulante.infraestucture.persistence.repository.entity.DemC
 @Mapper(componentModel = "spring", uses = { BneComunasMapper.class, BneRegionesMapper.class })
 public interface DemCondLabMapper {
 
-    /*
-     * Anotación ¿Para qué sirve?
-     * 
-     * @Mapping(...) Define un mapeo explícito entre campos (source → target)
-     * 
-     * @Named("...") Da un nombre al método para reutilizarlo con qualifiedByName
-     * 
-     * @IterableMapping(...) Para mapear listas con métodos específicos
-     * (qualifiedByName, etc.)
-     * 
-     * @BeanMapping(...) Permite ajustar detalles como
-     * nullValuePropertyMappingStrategy
-     * 
-     * @ValueMapping(...) Para mapear enums con valores específicos
-     * 
-     * @InheritConfiguration Reutiliza la configuración de otro método de mapeo
-     * 
-     * @InheritInverseConfiguration Lo mismo pero al invertir source/target
-     */
+
 
     @Mapping(target = "bneActEconomica.id", source = "idActEconomica")
     @Mapping(target = "bneSitLaboral.id", source = "idSitLaboral")
@@ -43,9 +25,8 @@ public interface DemCondLabMapper {
     @Mapping(source = "bneSitLaboral.nombre", target = "nombreSitLaboral")
     @Mapping(source = "perPersonas.id", target = "idPostulante")
     DemCondLabDTO toDTO(DemCondLab entity);
-//
-//    @Mapping(target = "bneActEconomica.id", source = "idActEconomica")
-//    @Mapping(target = "bneSitLaboral.id", source = "idSitLaboral")
+    @Mapping(target = "bneActEconomica.id", source = "idActEconomica")
+    @Mapping(target = "bneSitLaboral.id", source = "idSitLaboral")
     @Mapping(target = "perPersonas.id", source = "idPostulante")
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateEntityFromDto(DemCondLabDTO dto, @MappingTarget DemCondLab entity);

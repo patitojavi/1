@@ -33,6 +33,11 @@ public interface DemTitulacionMapper {
     @Mapping(source = "perPersonas.id", target = "idPostulante")
     DemTitulacionesDTO toDTO(DemTitulaciones entity);
 
+    @Mapping(target = "bneAreas.id", source = "idBneAreas")
+    @Mapping(target = "bneNivelesEducativos.id", source = "idBneNivelesEducativos")
+    @Mapping(target = "bneRegiones.id", source = "idBneRegiones")
+    @Mapping(target = "bneTipoEducacionMedia.id", source = "idBneTipoEducacionMedia")
+    @Mapping(target = "bneTitulacionesUniv.id", source = "idBneTitulacionesUniv")
     @Mapping(target = "perPersonas.id", source = "idPostulante")
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateEntityFromDto(DemTitulacionesDTO dto, @MappingTarget DemTitulaciones entity);

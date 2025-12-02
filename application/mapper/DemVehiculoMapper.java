@@ -21,6 +21,7 @@ public interface DemVehiculoMapper {
     @Mapping(source = "perPersonas.id", target = "idPostulante")
     DemVehiculosDTO toDTO(DemVehiculos entity);
 
+    @Mapping(target = "bneVehiculos.id", source = "idBneVehiculo")
     @Mapping(target = "perPersonas.id", source = "idPostulante")
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateEntityFromDto(DemVehiculosDTO dto, @MappingTarget DemVehiculos entity);

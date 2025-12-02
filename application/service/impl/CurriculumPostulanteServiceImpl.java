@@ -21,6 +21,7 @@ import es.altia.bne.postulante.application.dto.DemPresentacionDTO;
 import es.altia.bne.postulante.application.dto.DemReferenciasLaboralesDTO;
 import es.altia.bne.postulante.application.dto.DemTitulacionesDTO;
 import es.altia.bne.postulante.application.dto.DemVehiculosDTO;
+import es.altia.bne.postulante.application.mapper.CurriculumMapper;
 import es.altia.bne.postulante.application.service.CurriculumPostulanteService;
 import es.altia.bne.postulante.application.service.DatosPostulanteService;
 import es.altia.bne.postulante.application.service.DemCondLabService;
@@ -51,6 +52,7 @@ public class CurriculumPostulanteServiceImpl implements CurriculumPostulanteServ
     private final DemPresentacionJpaRepository demPresentacionRepository;
     private final DemExpLaboralJpaRepository demExpLaboralRepository;
     private final DemReferenciasLaboralesJpaRepository demReferenciasLaboralesRepository;
+    private final CurriculumMapper curriculumMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -63,19 +65,19 @@ public class CurriculumPostulanteServiceImpl implements CurriculumPostulanteServ
 
         DemPresentacionDTO resumenPerfil = demPresentacionRepository
                 .findFirstByPerPersonasIdOrderByFecModifDesc(idPostulante)
-                .map(this::mapPresentacion)
+                .map(curriculumMapper::toPresentacionDto)
                 .orElse(null);
 
         List<DemExpLaboralDTO> experienciasLaborales = demExpLaboralRepository
                 .findByPerPersonasIdOrderByFecIniDesc(idPostulante)
                 .stream()
-                .map(this::mapExperienciaLaboral)
+                .map(curriculumMapper::toExpLaboralDto)
                 .collect(Collectors.toList());
 
         List<DemReferenciasLaboralesDTO> referenciasLaborales = demReferenciasLaboralesRepository
                 .findByPerPersonasIdOrderByIdAsc(idPostulante)
                 .stream()
-                .map(this::mapReferenciaLaboral)
+                .map(curriculumMapper::toReferenciaDto)
                 .collect(Collectors.toList());
 
         List<DemTitulacionesDTO> titulaciones = obtenerTitulaciones(idPostulante);
@@ -122,74 +124,5 @@ public class CurriculumPostulanteServiceImpl implements CurriculumPostulanteServ
         }
     }
 
-    private DemPresentacionDTO mapPresentacion(DemPresentacion entity) {
-        DemPresentacionDTO dto = new DemPresentacionDTO();
-        dto.setId(entity.getId());
-        PerPersonas persona = entity.getPerPersonas();
-        dto.setIdPostulante(persona != null ? persona.getId() : null);
-        dto.setTextoCarta(entity.getTexto());
-        dto.setFechaAlta(entity.getFecAlta());
-        dto.setFechaModif(entity.getFecModif());
-        return dto;
-    }
 
-    private DemExpLaboralDTO mapExperienciaLaboral(DemExpLaboral entity) {
-        DemExpLaboralDTO dto = new DemExpLaboralDTO();
-        dto.setId(entity.getId());
-        PerPersonas persona = entity.getPerPersonas();
-        dto.setIdPostulante(persona != null ? persona.getId() : null);
-
-        BneOcupaciones ocupacion = entity.getBneOcupaciones();
-        if (ocupacion != null) {
-            BneOcupacionesDTO ocupacionDTO = new BneOcupacionesDTO();
-            ocupacionDTO.setId(ocupacion.getId());
-            ocupacionDTO.setCodigo(ocupacion.getCodigo());
-            ocupacionDTO.setNombre(ocupacion.getNombre());
-            dto.setBneOcupaciones(ocupacionDTO);
-        }
-
-        BneRegiones region = entity.getBneRegiones();
-        if (region != null) {
-            dto.setIdRegion(region.getId());
-            dto.setNombreRegion(region.getNombre());
-        }
-
-        dto.setRazonSocial(entity.getRazonSocial());
-        dto.setFecIni(entity.getFecIni());
-        dto.setFecFin(entity.getFecFin());
-        dto.setNumMeses(entity.getNumMeses());
-        dto.setSueldo(entity.getSueldo());
-        dto.setDescripcion(entity.getDescripcion());
-        dto.setCodFichero(entity.getCodFichero());
-        dto.setFecAlta(entity.getFecAlta());
-        dto.setFecModif(entity.getFecModif());
-        dto.setReferencias(entity.getReferencias());
-        dto.setOtrasOcupaciones(entity.getOtrasOcupaciones());
-        dto.setActualidad(entity.getFecFin() == null);
-
-        DemExpLaboralArchivos archivo = entity.getDemExpLaboralArchivos();
-        if (archivo != null) {
-            DemExpLaboralArchivosDTO archivoDTO = new DemExpLaboralArchivosDTO();
-            archivoDTO.setId(archivo.getId());
-            archivoDTO.setIdDemExpLaboral(entity.getId());
-            archivoDTO.setArchivo(archivo.getArchivo());
-            archivoDTO.setNombre(archivo.getNombre());
-            dto.setDemExpLaboralArchivos(archivoDTO);
-        }
-
-        return dto;
-    }
-
-    private DemReferenciasLaboralesDTO mapReferenciaLaboral(DemReferenciasLaborales entity) {
-        DemReferenciasLaboralesDTO dto = new DemReferenciasLaboralesDTO();
-        dto.setId(entity.getId());
-        PerPersonas persona = entity.getPerPersonas();
-        dto.setIdPostulante(persona != null ? persona.getId() : null);
-        dto.setNombre(entity.getNombre());
-        dto.setPuesto(entity.getPuesto());
-        dto.setEmpresa(entity.getEmpresa());
-        dto.setTelefono(entity.getTelefono());
-        dto.setEmail(entity.getEmail());
-        return dto;
-    }
 }

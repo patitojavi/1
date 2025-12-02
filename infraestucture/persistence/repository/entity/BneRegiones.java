@@ -19,6 +19,10 @@ import lombok.NoArgsConstructor;
 @Table(name = "BNE_REGIONES", uniqueConstraints = @UniqueConstraint(columnNames = "CODIGO"))
 public class BneRegiones implements Serializable {
 
+    public BneRegiones(Integer id) {
+        this.id = id;
+    }
+
     private static final long serialVersionUID = 1134756017423837707L;
 
     private Integer id;

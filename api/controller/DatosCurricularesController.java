@@ -1,8 +1,7 @@
 package es.altia.bne.postulante.api.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,13 +9,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import es.altia.bne.postulante.application.dto.DatosCurricularesDTO;
 import es.altia.bne.postulante.application.dto.DemCondLabDTO;
 import es.altia.bne.postulante.application.dto.DemExpLaboralDTO;
 import es.altia.bne.postulante.application.dto.DemPresentacionDTO;
 import es.altia.bne.postulante.application.dto.DemReferenciasLaboralesDTO;
 import es.altia.bne.postulante.application.service.DatosCurricularesService;
+import es.altia.bne.postulante.application.service.DatosCurricularesConsolidadoService;
 import es.altia.bne.postulante.application.service.DemCondLabService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -24,13 +29,12 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 @RestController
 @RequestMapping("/datosCurriculares")
-@Tag(name = "Datos Postulante Controller", description = "Controlador para gestionar acciones relacionadas con los datos curriculares de un postulante.")
+@Tag(name = "Curriculum Postulante - Datos Curriculares", description = "Endpoints para obtener y actualizar datos curriculares del postulante: experiencia, educación, idiomas, habilidades, certificaciones, referencias y disponibilidad.")
 public class DatosCurricularesController {
 
-    @Autowired
     private DatosCurricularesService datosService;
-    @Autowired
     private DemCondLabService demCondLabService;
+    private DatosCurricularesConsolidadoService datosCurricularesConsolidadoService;
 
     @Operation(summary = "Obtiene los datos de experiencia profesional de un postulante.", description = "Esto incluye: condicion laboral actual, resumen perfil, experiencia laboral y referencias laborales.")
     @GetMapping("/experienciaProfesional/{idPostulante}")
@@ -88,4 +92,54 @@ public class DatosCurricularesController {
     public ResponseEntity<?> actualizarReferenciasLaborales(@Valid @RequestBody DemReferenciasLaboralesDTO referenciasLaboralesDTO) throws Exception {
         return new ResponseEntity<>(datosService.actualizarReferenciasLaborales(referenciasLaboralesDTO), HttpStatus.OK);
     }
+
+    // ============================================================
+    // === GET /datosCurriculares/v1/curriculum/{idPostulante} ===
+    // === Historia de Usuario: Obtener Datos Curriculares v1.1 ===
+    // ============================================================
+
+    /**
+     * Obtiene todos los datos curriculares consolidados de un postulante.
+     * 
+     * Versión 1.1: Incluye datos personales, experiencia laboral, educación,
+     * idiomas, habilidades, certificaciones, referencias, logros y disposición.
+     * 
+     * @param idPostulante Identificador único del postulante
+     * @return DatosCurricularesDTO con información completa del perfil curricular
+     */
+    @Operation(
+        summary = "Obtener Datos Curriculares Consolidados v1.1",
+        description = "Retorna todos los datos curriculares del postulante de forma consolidada: "
+            + "información personal, experiencia laboral, educación, idiomas, habilidades, "
+            + "certificaciones, referencias laborales, logros profesionales y disponibilidad laboral."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Datos curriculares obtenidos exitosamente",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = DatosCurricularesDTO.class)
+            )
+        ),
+        @ApiResponse(responseCode = "400", description = "ID de postulante inválido"),
+        @ApiResponse(responseCode = "404", description = "Postulante no encontrado"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor al obtener datos curriculares")
+    })
+    @GetMapping("/v1/curriculum/{idPostulante}")
+    public ResponseEntity<DatosCurricularesDTO> obtenerDatosCurricularesV1Consolidado(
+            @PathVariable("idPostulante") Long idPostulante) {
+        
+        var datosCurriculares = datosCurricularesConsolidadoService.obtenerDatosCurriculares(idPostulante);
+        
+        if (datosCurriculares.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        return ResponseEntity.ok(datosCurriculares.get());
+    }
+
+    // ============================================================
+    // === Endpoints Anteriores (Mantenimiento) ===
+    // ============================================================
 }

@@ -24,12 +24,37 @@ public class CurriculumVitaeDTO implements Serializable {
     private DatosPersonalesDTO datosPersonales;
     private DemCondLabDTO condicionLaboral;
     private DemPresentacionDTO resumenPerfil;
+
     @Builder.Default
     private List<DemExpLaboralDTO> experienciasLaborales = Collections.emptyList();
+
     @Builder.Default
     private List<DemReferenciasLaboralesDTO> referenciasLaborales = Collections.emptyList();
+    
     @Builder.Default
     private List<DemTitulacionesDTO> titulaciones = Collections.emptyList();
+    
     @Builder.Default
     private List<DemVehiculosDTO> vehiculos = Collections.emptyList();
-    }
+    
+    @Builder.Default
+    private List<DemCapacitacionesDTO> capacitaciones = Collections.emptyList();
+
+    @Builder.Default
+    private List<DemCertificacionesDTO> certificaciones = Collections.emptyList();
+
+    @Builder.Default
+    private List<DemHabilidadesDTO> habilidades = Collections.emptyList();
+
+    @Builder.Default
+    private List<DemIdiomasDTO> idiomas = Collections.emptyList();
+
+    @Builder.Default
+    private List<DemIdiomasTitulacionesDTO> idiomasTitulaciones = Collections.emptyList();
+
+    @Builder.Default
+    private List<DemServiciosDTO> servicios = Collections.emptyList();
+
+    @Builder.Default
+    private List<DemDisponibilidadDto> disponibilidades = Collections.emptyList();
+}

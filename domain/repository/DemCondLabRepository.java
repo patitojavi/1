@@ -44,4 +44,11 @@ public interface DemCondLabRepository {
      * @return
      */
     Optional<DemCondLab> findById(Long id);
+
+    /**
+     * Obtiene la condición laboral de un postulante por su ID
+     * @param idPostulante ID del postulante
+     * @return Optional con la condición laboral si existe
+     */
+    Optional<DemCondLab> findByIdPostulante(Long idPostulante);
 }

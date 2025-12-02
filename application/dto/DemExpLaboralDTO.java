@@ -20,7 +20,6 @@ public class DemExpLaboralDTO {
     @NotNull(message = "El id no puede estar vacío")
     @Positive(message = "El id debe ser mayor que cero")
     private Long idPostulante;
-//    private BneNivelProfesionalDto bneNivelProfesional;
     private BneOcupacionesDTO bneOcupaciones;
     @NotNull(message = "El id no puede estar vacío")
     @Positive(message = "El id debe ser mayor que cero")
@@ -53,24 +52,7 @@ public class DemExpLaboralDTO {
     public DemExpLaboralDTO() {
     }
 
-    public DemExpLaboralDTO(
-            Long id,
-            String numDocumento, String nombre, String ape1, String ape2, Date fecNac, String sexo,
-            Integer idNacionalidad, Integer idEstadoCivil,
-            String digitoVerificador, Integer tipoDocumento, Boolean indMostrarDatospostulante) {
-        super();
+    public DemExpLaboralDTO(Long id) {
         this.id = id;
-//        this.numDocumento = numDocumento;
-//        this.nombre = nombre;
-//        this.ape1 = ape1;
-//        this.ape2 = ape2;
-//        this.fecNac = fecNac;
-//        this.sexo = sexo;
-//        this.idNacionalidad = idNacionalidad;
-//        this.idEstadoCivil = idEstadoCivil;
-//      
-//        this.digitoVerificador = digitoVerificador;
-//        this.tipoDocumento = tipoDocumento;
-//        this.indMostrarDatospostulante = indMostrarDatospostulante;
     }
 }

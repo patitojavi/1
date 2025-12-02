@@ -101,7 +101,12 @@ public class HomePostulanteServiceImpl implements HomePostulanteService {
 
                 DemCondLabDTO condicionLaboral = new DemCondLabDTO();
                 DemTitulacionesDTO nivelEducacional = new DemTitulacionesDTO(1L, idPostulante, null, "Ingeniería Informática", null, "UCT", null, "2019", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
-                DemExpLaboralDTO experiencia = new DemExpLaboralDTO(1L, "Desarrollador Java", "Altia", "2020-2025", "Backend Developer", null, null, null, null, null, null, null);
+                DemExpLaboralDTO experiencia = new DemExpLaboralDTO();
+                experiencia.setId(1L);
+                experiencia.setIdPostulante(idPostulante);
+                experiencia.setRazonSocial("Altia");
+                experiencia.setOtrasOcupaciones("Desarrollador Java");
+                experiencia.setDescripcion("Backend Developer");
 
                 return HomePostulanteDTO.builder()
                         .datosPersonales(persona)
@@ -129,7 +134,6 @@ public class HomePostulanteServiceImpl implements HomePostulanteService {
             DemCondLabDTO condicionLaboral = demCondLabService.obtenerCondicionActual(idPostulante);
             List<DemTitulacionesDTO> titulaciones = demTitulacionesService.obtenerTitulaciones(idPostulante);
             DemExpLaboralDTO experiencia = datosCurricularesService.obtenerExperienciaLaboral(idPostulante);
-            DemReferenciasLaboralesDTO referencias = datosCurricularesService.obtenerReferenciasLaborales(idPostulante);
             List<DemVehiculosDTO> vehiculos = demVehiculosService.obtenerVehiculos(idPostulante);
 
             HomePostulanteDTO dto = HomePostulanteDTO.builder()
