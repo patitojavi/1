@@ -1,13 +1,9 @@
 package es.altia.bne.postulante.api.controller;
 
-import java.nio.charset.StandardCharsets;
-
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,9 +46,7 @@ public class CurriculumDocumentoController {
 
     @Operation(
         summary = "Generar Curriculum del Postulante",
-        description = "Genera un archivo de CV en el formato indicado (pdf, txt, etc.). "
-                    + "Actualmente devuelve un archivo TXT para pruebas, pero está preparado "
-                    + "para soportar PDF cuando se integre la generación real."
+        description = "Genera un archivo de CV en el formato indicado (pdf o word)"
     )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "CV generado exitosamente"),
@@ -65,57 +59,37 @@ public class CurriculumDocumentoController {
             @PathVariable Long idPostulante,
 
             @Parameter(
-                description = "Formato en el que se generará el CV (pdf, txt, html).",
+                description = "Formato en el que se generará el CV (pdf o word).",
                 example = "pdf"
             )
-            @RequestParam(defaultValue = "pdf") String formato,
-
-            Authentication authentication) {
+            @RequestParam(defaultValue = "pdf") String formato) {
 
         try {
-            // MODO DESARROLLO: Validación de propietario desactivada temporalmente.
-            validarPropietario(authentication, idPostulante);
-
+            // Por ahora sin validación de propietario (sin token / auth).
             CvFormato cvFormato = CvFormato.fromString(formato);
 
             byte[] archivo = curriculumDocumentoService.generarCv(idPostulante, cvFormato);
 
-            String fileName = "cv_postulante_" + idPostulante + ".txt";
+            String fileName = "cv_postulante_" + idPostulante + cvFormato.getExtension();
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION,
                             "attachment; filename=" + fileName)
-                    .contentType(MediaType.TEXT_PLAIN)
+                    .contentType(MediaType.parseMediaType(cvFormato.getContentType()))
                     .body(archivo);
 
         } catch (DataValidationException e) {
             return ResponseEntity.badRequest()
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body(e.getMessage().getBytes(StandardCharsets.UTF_8));
+                    .body(e.getMessage().getBytes());
 
         } catch (ResourceNotFoundException e) {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND, e.getMessage(), e);
 
-        } catch (AccessDeniedException e) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, e.getMessage(), e);
-
         } catch (ServiceException e) {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
         }
-    }
-
-    /**
-     * Validación de propietario en modo desarrollo.
-     * Actualmente no realiza ninguna comprobación.
-     * 
-     * Cuando se active la seguridad real (JWT o sesión), aquí se deberá:
-     *   - Validar que el usuario autenticado corresponde al idPostulante
-     *   - O verificar que tenga rol administrador
-     */
-    private void validarPropietario(Authentication authentication, Long idPostulante) {
-        // validación desactivada mientras se desarrolla el módulo
     }
 }

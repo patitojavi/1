@@ -11,6 +11,7 @@ import es.altia.bne.common.exception.ResourceNotFoundException;
 import es.altia.bne.common.exception.ServiceException;
 import es.altia.bne.common.exception.validation.DataValidationException;
 import es.altia.bne.postulante.application.dto.CurriculumVitaeDTO;
+import es.altia.bne.postulante.application.dto.CvDTO;
 import es.altia.bne.postulante.application.dto.DatosBasicosDTO;
 import es.altia.bne.postulante.application.dto.DatosPersonalesDTO;
 import es.altia.bne.postulante.application.dto.DemCondLabDTO;
@@ -18,6 +19,7 @@ import es.altia.bne.postulante.application.dto.DemExpLaboralDTO;
 import es.altia.bne.postulante.application.dto.DemPresentacionDTO;
 import es.altia.bne.postulante.application.dto.DemReferenciasLaboralesDTO;
 import es.altia.bne.postulante.application.dto.DemTitulacionesDTO;
+import es.altia.bne.postulante.application.mapper.CvMapper;
 import es.altia.bne.postulante.application.service.CurriculumDocumentoService;
 import es.altia.bne.postulante.application.service.CurriculumPostulanteService;
 import es.altia.bne.postulante.application.service.model.CvFormato;
@@ -30,63 +32,60 @@ public class CurriculumDocumentoServiceImpl implements CurriculumDocumentoServic
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy");
 
     private final CurriculumPostulanteService curriculumPostulanteService;
+    private final CvMapper cvMapper;
 
     @Override
     public byte[] generarCv(Long idPostulante, CvFormato formato)
             throws DataValidationException, ResourceNotFoundException, ServiceException {
-        CurriculumVitaeDTO curriculum = curriculumPostulanteService.obtenerCurriculum(idPostulante);
-        validarObligatorios(curriculum);
-        normalizarCurriculum(curriculum);
 
-        String contenido = construirContenido(curriculum, formato);
-        return contenido.getBytes(StandardCharsets.UTF_8);
+        CurriculumVitaeDTO curriculum = curriculumPostulanteService.obtenerCurriculum(idPostulante);
+        CvDTO cv = cvMapper.toCvDto(curriculum);
+
+       
+        validarObligatorios(cv);
+
+        return switch (formato) {
+            case WORD -> generarWord(cv);
+            case PDF -> generarPdf(cv);
+        };
     }
 
-    private void validarObligatorios(CurriculumVitaeDTO curriculum) throws DataValidationException {
-        DatosPersonalesDTO datosPersonales = curriculum.getDatosPersonales();
-        DatosBasicosDTO basicos = datosPersonales != null ? datosPersonales.getDatosBasicos() : null;
+    /**
+     * Valida campos obligatorios del CV.
+     * Actualmente desactivada en modo desarrollo.
+     */
+    private void validarObligatorios(CvDTO curriculum) throws DataValidationException {
+        DatosBasicosDTO basicos = curriculum.getDatosBasicos();
         if (basicos == null) {
             throw new DataValidationException("Faltan los datos personales del postulante");
         }
 
-        if (estaVacio(basicos.getNombre()) || estaVacio(basicos.getApe1()) || estaVacio(basicos.getNumDocumento())) {
+        if (estaVacio(basicos.getNombre())
+                || estaVacio(basicos.getApe1())
+                || estaVacio(basicos.getNumDocumento())) {
             throw new DataValidationException("Nombre, apellido y RUT son obligatorios para generar el CV");
         }
     }
 
-    private void normalizarCurriculum(CurriculumVitaeDTO curriculum) {
-        Optional.ofNullable(curriculum.getDatosPersonales())
-                .map(DatosPersonalesDTO::getDatosBasicos)
-                .ifPresent(basicos -> {
-                    basicos.setNombre(capitalize(basicos.getNombre()));
-                    basicos.setApe1(capitalize(basicos.getApe1()));
-                    basicos.setApe2(capitalize(basicos.getApe2()));
-                });
-
-        Optional.ofNullable(curriculum.getResumenPerfil())
-                .ifPresent(resumen -> resumen.setTextoCarta(normalize(resumen.getTextoCarta())));
-
-        curriculum.getExperienciasLaborales().forEach(exp -> {
-            exp.setRazonSocial(capitalize(exp.getRazonSocial()));
-            exp.setDescripcion(normalize(exp.getDescripcion()));
-        });
-
-        curriculum.getReferenciasLaborales().forEach(ref -> {
-            ref.setNombre(capitalize(ref.getNombre()));
-            ref.setEmpresa(capitalize(ref.getEmpresa()));
-            ref.setPuesto(capitalize(ref.getPuesto()));
-        });
+    private byte[] generarPdf(CvDTO cv) {
+        String contenido = construirContenido(cv, "PDF");
+        return contenido.getBytes(StandardCharsets.UTF_8);
     }
 
-    private String construirContenido(CurriculumVitaeDTO curriculum, CvFormato formato) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Curriculum Vitae (" + formato.name() + ")\n");
+    private byte[] generarWord(CvDTO cv) {
+        String contenido = construirContenido(cv, "WORD");
+        return contenido.getBytes(StandardCharsets.UTF_8);
+    }
 
-        DatosBasicosDTO basicos = curriculum.getDatosPersonales().getDatosBasicos();
+    private String construirContenido(CvDTO curriculum, String etiquetaFormato) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Curriculum Vitae (").append(etiquetaFormato).append(")\n");
+
+        DatosBasicosDTO basicos = curriculum.getDatosBasicos();
         builder.append("Nombre completo: ").append(nombreCompleto(basicos)).append('\n');
         builder.append("RUT: ").append(formatearRut(basicos)).append('\n');
 
-        Optional.ofNullable(curriculum.getDatosPersonales().getDatosContacto())
+        Optional.ofNullable(curriculum.getContacto())
                 .ifPresent(contacto -> builder.append("Email: ")
                         .append(Optional.ofNullable(contacto.getEmail()).orElse("-"))
                         .append(" | Teléfono: ")
@@ -97,54 +96,68 @@ public class CurriculumDocumentoServiceImpl implements CurriculumDocumentoServic
         if (condicionLaboral != null) {
             builder.append("Situación laboral: ")
                     .append(Optional.ofNullable(condicionLaboral.getNombreSitLaboral()).orElse("-"))
-                    .append(" desde ").append(formatearFecha(condicionLaboral.getFecIni()))
+                    .append(" desde ")
+                    .append(formatearFecha(condicionLaboral.getFecIni()))
                     .append('\n');
         }
 
         Optional.ofNullable(curriculum.getResumenPerfil())
                 .map(DemPresentacionDTO::getTextoCarta)
                 .filter(texto -> !texto.isBlank())
-                .ifPresent(texto -> builder.append("\nPerfil profesional:\n").append(texto).append("\n"));
+                .ifPresent(texto -> builder.append("\nPerfil profesional:\n")
+                        .append(texto)
+                        .append("\n"));
 
+        // Experiencia laboral
         builder.append("\nExperiencia laboral:\n");
-        if (curriculum.getExperienciasLaborales().isEmpty()) {
+        if (curriculum.getExperiencias() == null || curriculum.getExperiencias().isEmpty()) {
             builder.append("- Sin registros\n");
         } else {
-            for (DemExpLaboralDTO experiencia : curriculum.getExperienciasLaborales()) {
+            for (DemExpLaboralDTO experiencia : curriculum.getExperiencias()) {
                 builder.append("- ")
-                        .append(Optional.ofNullable(experiencia.getRazonSocial()).orElse("Empresa no informada"))
+                        .append(Optional.ofNullable(experiencia.getRazonSocial())
+                                .orElse("Empresa no informada"))
                         .append(" (")
                         .append(formatearFecha(experiencia.getFecIni()))
                         .append(" - ")
-                        .append(experiencia.getActualidad() ? "Actual" : formatearFecha(experiencia.getFecFin()))
+                        .append(Boolean.TRUE.equals(experiencia.getActualidad())
+                                ? "Actual"
+                                : formatearFecha(experiencia.getFecFin()))
                         .append(")\n");
+
                 if (experiencia.getDescripcion() != null) {
-                    builder.append("  ").append(experiencia.getDescripcion()).append('\n');
+                    builder.append("  ")
+                            .append(experiencia.getDescripcion())
+                            .append('\n');
                 }
             }
         }
 
+        // Referencias laborales
         builder.append("\nReferencias laborales:\n");
-        if (curriculum.getReferenciasLaborales().isEmpty()) {
+        if (curriculum.getReferencias() == null || curriculum.getReferencias().isEmpty()) {
             builder.append("- Sin registros\n");
         } else {
-            for (DemReferenciasLaboralesDTO referencia : curriculum.getReferenciasLaborales()) {
+            for (DemReferenciasLaboralesDTO referencia : curriculum.getReferencias()) {
                 builder.append("- ")
-                        .append(Optional.ofNullable(referencia.getNombre()).orElse("Nombre no informado"))
+                        .append(Optional.ofNullable(referencia.getNombre())
+                                .orElse("Nombre no informado"))
                         .append(" | ")
-                        .append(Optional.ofNullable(referencia.getEmpresa()).orElse("Empresa no informada"))
+                        .append(Optional.ofNullable(referencia.getEmpresa())
+                                .orElse("Empresa no informada"))
                         .append(" | Tel: ")
-                        .append(Optional.ofNullable(referencia.getTelefono()).orElse("-"))
+                        .append(Optional.ofNullable(referencia.getTelefono())
+                                .orElse("-"))
                         .append('\n');
             }
         }
 
-        // 🔧 SECCIÓN CORREGIDA: Formación
+        // Formación
         builder.append("\nFormación:\n");
-        if (curriculum.getTitulaciones().isEmpty()) {
+        if (curriculum.getFormacion() == null || curriculum.getFormacion().isEmpty()) {
             builder.append("- Sin registros\n");
         } else {
-            for (DemTitulacionesDTO titulacion : curriculum.getTitulaciones()) {
+            for (DemTitulacionesDTO titulacion : curriculum.getFormacion()) {
                 builder.append("- ")
                         .append(Optional.ofNullable(titulacion.getNombreBneTitulacionesUniv())
                                 .orElse("Titulación no informada"))
@@ -159,6 +172,9 @@ public class CurriculumDocumentoServiceImpl implements CurriculumDocumentoServic
     }
 
     private String nombreCompleto(DatosBasicosDTO basicos) {
+        if (basicos == null) {
+            return "-";
+        }
         StringBuilder builder = new StringBuilder();
         builder.append(capitalize(basicos.getNombre()));
         builder.append(' ').append(capitalize(basicos.getApe1()));
@@ -169,11 +185,11 @@ public class CurriculumDocumentoServiceImpl implements CurriculumDocumentoServic
     }
 
     private String formatearRut(DatosBasicosDTO basicos) {
-        if (estaVacio(basicos.getNumDocumento())) {
+        if (basicos == null || estaVacio(basicos.getNumDocumento())) {
             return "-";
         }
         String dv = basicos.getDigitoVerificador();
-        return dv != null && !dv.isBlank()
+        return (dv != null && !dv.isBlank())
                 ? basicos.getNumDocumento() + "-" + dv
                 : basicos.getNumDocumento();
     }
@@ -187,10 +203,6 @@ public class CurriculumDocumentoServiceImpl implements CurriculumDocumentoServic
 
     private boolean estaVacio(String value) {
         return value == null || value.isBlank();
-    }
-
-    private String normalize(String value) {
-        return value == null ? null : value.trim().replaceAll("\\s+", " ");
     }
 
     private String capitalize(String value) {
