@@ -1,6 +1,7 @@
 package es.altia.bne.postulante.application.service.impl;
 
-import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Optional;
@@ -13,7 +14,6 @@ import es.altia.bne.common.exception.validation.DataValidationException;
 import es.altia.bne.postulante.application.dto.CurriculumVitaeDTO;
 import es.altia.bne.postulante.application.dto.CvDTO;
 import es.altia.bne.postulante.application.dto.DatosBasicosDTO;
-import es.altia.bne.postulante.application.dto.DatosPersonalesDTO;
 import es.altia.bne.postulante.application.dto.DemCondLabDTO;
 import es.altia.bne.postulante.application.dto.DemExpLaboralDTO;
 import es.altia.bne.postulante.application.dto.DemPresentacionDTO;
@@ -24,6 +24,19 @@ import es.altia.bne.postulante.application.service.CurriculumDocumentoService;
 import es.altia.bne.postulante.application.service.CurriculumPostulanteService;
 import es.altia.bne.postulante.application.service.model.CvFormato;
 import lombok.RequiredArgsConstructor;
+
+// PDFBox
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+
+// Apache POI (Word)
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 
 @Service
 @RequiredArgsConstructor
@@ -41,7 +54,7 @@ public class CurriculumDocumentoServiceImpl implements CurriculumDocumentoServic
         CurriculumVitaeDTO curriculum = curriculumPostulanteService.obtenerCurriculum(idPostulante);
         CvDTO cv = cvMapper.toCvDto(curriculum);
 
-       
+        // Validación de datos obligatorios del CV
         validarObligatorios(cv);
 
         return switch (formato) {
@@ -52,7 +65,6 @@ public class CurriculumDocumentoServiceImpl implements CurriculumDocumentoServic
 
     /**
      * Valida campos obligatorios del CV.
-     * Actualmente desactivada en modo desarrollo.
      */
     private void validarObligatorios(CvDTO curriculum) throws DataValidationException {
         DatosBasicosDTO basicos = curriculum.getDatosBasicos();
@@ -67,15 +79,133 @@ public class CurriculumDocumentoServiceImpl implements CurriculumDocumentoServic
         }
     }
 
-    private byte[] generarPdf(CvDTO cv) {
+    /**
+     * Genera un PDF real usando PDFBox, con formato básico (título y subtítulos).
+     */
+    private byte[] generarPdf(CvDTO cv) throws ServiceException {
         String contenido = construirContenido(cv, "PDF");
-        return contenido.getBytes(StandardCharsets.UTF_8);
+        String[] lineas = contenido.split("\n");
+
+        try (PDDocument document = new PDDocument();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+
+            try (PDPageContentStream contentStream =
+                         new PDPageContentStream(document, page)) {
+
+                float marginLeft = 50;
+                float cursorY = 780;
+                float leading = 16f; // espacio entre líneas
+
+                // Título grande
+                contentStream.beginText();
+                contentStream.setFont(PDType1Font.HELVETICA_BOLD, 20);
+                contentStream.newLineAtOffset(marginLeft, cursorY);
+                contentStream.showText("Curriculum Vitae");
+                contentStream.endText();
+
+                cursorY -= 30;
+
+                // Saltamos la primera línea del contenido ("Curriculum Vitae (PDF)")
+                for (int i = 1; i < lineas.length; i++) {
+                    String linea = lineas[i];
+                    String trimmed = linea.trim();
+
+                    if (trimmed.isEmpty()) {
+                        cursorY -= leading;
+                        continue;
+                    }
+
+                    boolean esTitulo = trimmed.endsWith(":") && !trimmed.startsWith("-");
+
+                    contentStream.beginText();
+                    contentStream.newLineAtOffset(marginLeft, cursorY);
+
+                    if (esTitulo) {
+                        contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
+                    } else if (trimmed.startsWith("-")) {
+                        contentStream.setFont(PDType1Font.HELVETICA, 11);
+                    } else {
+                        contentStream.setFont(PDType1Font.HELVETICA, 12);
+                    }
+
+                    contentStream.showText(trimmed);
+                    contentStream.endText();
+
+                    cursorY -= leading;
+
+                    // (simplificado) si se acaba la página, dejamos de escribir
+                    if (cursorY < 50) {
+                        break;
+                    }
+                }
+            }
+
+            document.save(out);
+            return out.toByteArray();
+
+        } catch (IOException e) {
+            throw new ServiceException("Error al generar el PDF del CV", e);
+        }
     }
 
-    private byte[] generarWord(CvDTO cv) {
-        String contenido = construirContenido(cv, "WORD");
-        return contenido.getBytes(StandardCharsets.UTF_8);
+    /**
+     * Genera un documento DOCX real usando Apache POI,
+     * con título centrado y subtítulos en negrita.
+     */
+    private byte[] generarWord(CvDTO cv) throws ServiceException {
+    String contenido = construirContenido(cv, "WORD");
+
+    try (XWPFDocument document = new XWPFDocument();
+         ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+        // Título principal centrado
+        XWPFParagraph titulo = document.createParagraph();
+        titulo.setAlignment(ParagraphAlignment.CENTER);
+
+        XWPFRun runTitulo = titulo.createRun();
+        runTitulo.setText("Curriculum Vitae");
+        runTitulo.setBold(true);
+        runTitulo.setFontSize(22);
+        runTitulo.addBreak();
+
+        // Párrafos del contenido
+        String[] lineas = contenido.split("\n");
+        // saltamos la primera línea: "Curriculum Vitae (WORD)"
+        for (int i = 1; i < lineas.length; i++) {
+            String linea = lineas[i].trim();
+            if (linea.isEmpty()) {
+                continue;
+            }
+
+            XWPFParagraph p = document.createParagraph();
+            p.setAlignment(ParagraphAlignment.LEFT);
+
+            XWPFRun run = p.createRun();
+            run.setFontFamily("Calibri");
+            run.setFontSize(12);
+
+            boolean esTitulo = linea.endsWith(":") && !linea.startsWith("-");
+
+            if (esTitulo) {
+                run.setBold(true);
+                run.setFontSize(14);
+            }
+
+            run.setText(linea);
+        }
+
+        document.write(out);
+        return out.toByteArray();
+
+    } catch (IOException e) {
+        // Aquí es donde se está lanzando el 500
+        throw new ServiceException("Error al generar el documento Word del CV", e);
     }
+}
+
 
     private String construirContenido(CvDTO curriculum, String etiquetaFormato) {
         StringBuilder builder = new StringBuilder();

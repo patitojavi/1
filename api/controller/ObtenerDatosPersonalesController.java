@@ -13,6 +13,7 @@ import es.altia.bne.postulante.application.dto.DatosDireccionDTO;
 import es.altia.bne.postulante.application.dto.DatosDiscapacidadDTO;
 import es.altia.bne.postulante.application.dto.ObtenerDatosPersonalesResponseDTO;
 import es.altia.bne.postulante.application.service.ObtenerDatosPersonalesService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,38 +21,33 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 /**
  * Controlador REST para la Historia de Usuario: Obtención de Datos Personales (GET)
- * 
- * Proporciona endpoints GET separados que permiten a los postulantes consultar sus datos 
+ *
+ * Proporciona endpoints GET separados que permiten a los postulantes consultar sus datos
  * personales por secciones: datos básicos, contacto, direcciones, discapacidad y sitio referencia.
- * 
- * @author assistant
  */
 @RestController
 @RequestMapping("/postulante")
 @RequiredArgsConstructor
 @Log4j2
-@Tag(name = "Obtener Datos Personales", 
-     description = "Endpoints separados para obtener datos personales del postulante por secciones")
+@Tag(
+    name = "Obtener Datos Personales",
+    description = "Endpoints separados para obtener datos personales del postulante por secciones"
+)
 public class ObtenerDatosPersonalesController {
 
     private final ObtenerDatosPersonalesService obtenerDatosPersonalesService;
 
     // ==================== ENDPOINT 1: DATOS BÁSICOS ====================
 
-    /**
-     * Obtiene los datos básicos de identificación del postulante.
-     * 
-     * @param idPostulante ID único del postulante
-     * @return ResponseEntity con DatosBasicosDTO
-     */
     @Operation(
         summary = "Obtener datos básicos del postulante",
-        description = "Retorna información fundamental de identificación: nombre, apellidos, documento, etc."
+        description = "Retorna información de identificación: nombre, apellidos, documento, etc."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -68,17 +64,16 @@ public class ObtenerDatosPersonalesController {
     })
     @GetMapping("/{idPostulante}/datosBasicos")
     public ResponseEntity<?> obtenerDatosBasicos(
-            @Parameter(description = "ID del postulante", required = true, example = "123")
+            @Parameter(description = "ID del postulante", required = true)
             @PathVariable Long idPostulante) {
 
         log.info("GET /postulante/{}/datosBasicos", idPostulante);
 
         try {
-            // Obtener datos básicos desde el servicio
-            ObtenerDatosPersonalesResponseDTO datosCompletos = 
+            ObtenerDatosPersonalesResponseDTO datos =
                 obtenerDatosPersonalesService.obtenerDatosPersonalesCompletos(idPostulante);
-            
-            return ResponseEntity.ok(datosCompletos.getDatosBasicos());
+
+            return ResponseEntity.ok(datos.getDatosBasicos());
 
         } catch (es.altia.bne.common.exception.validation.DataValidationException e) {
             log.error("Validación fallida: {}", e.getMessage());
@@ -87,22 +82,17 @@ public class ObtenerDatosPersonalesController {
             log.error("No encontrado: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"error\": \"Error interno\"}");
+            log.error("Error inesperado: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("{\"error\": \"Error interno\"}");
         }
     }
 
     // ==================== ENDPOINT 2: DATOS DE CONTACTO ====================
 
-    /**
-     * Obtiene los datos de contacto del postulante.
-     * 
-     * @param idPostulante ID único del postulante
-     * @return ResponseEntity con DatosContactoDTO
-     */
     @Operation(
         summary = "Obtener datos de contacto del postulante",
-        description = "Retorna información de contacto: email, teléfono, etc."
+        description = "Retorna email, teléfono, etc."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -119,16 +109,16 @@ public class ObtenerDatosPersonalesController {
     })
     @GetMapping("/{idPostulante}/datosContacto")
     public ResponseEntity<?> obtenerDatosContacto(
-            @Parameter(description = "ID del postulante", required = true, example = "123")
+            @Parameter(description = "ID del postulante", required = true)
             @PathVariable Long idPostulante) {
 
         log.info("GET /postulante/{}/datosContacto", idPostulante);
 
         try {
-            ObtenerDatosPersonalesResponseDTO datosCompletos = 
+            ObtenerDatosPersonalesResponseDTO datos =
                 obtenerDatosPersonalesService.obtenerDatosPersonalesCompletos(idPostulante);
-            
-            return ResponseEntity.ok(datosCompletos.getDatosContacto());
+
+            return ResponseEntity.ok(datos.getDatosContacto());
 
         } catch (es.altia.bne.common.exception.validation.DataValidationException e) {
             log.error("Validación fallida: {}", e.getMessage());
@@ -137,22 +127,17 @@ public class ObtenerDatosPersonalesController {
             log.error("No encontrado: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"error\": \"Error interno\"}");
+            log.error("Error inesperado: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("{\"error\": \"Error interno\"}");
         }
     }
 
     // ==================== ENDPOINT 3: DIRECCIONES ====================
 
-    /**
-     * Obtiene las direcciones del postulante.
-     * 
-     * @param idPostulante ID único del postulante
-     * @return ResponseEntity con DatosDireccionDTO
-     */
     @Operation(
         summary = "Obtener direcciones del postulante",
-        description = "Retorna todas las direcciones registradas del postulante"
+        description = "Retorna todas las direcciones registradas"
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -169,16 +154,16 @@ public class ObtenerDatosPersonalesController {
     })
     @GetMapping("/{idPostulante}/direcciones")
     public ResponseEntity<?> obtenerDirecciones(
-            @Parameter(description = "ID del postulante", required = true, example = "123")
+            @Parameter(description = "ID del postulante", required = true)
             @PathVariable Long idPostulante) {
 
         log.info("GET /postulante/{}/direcciones", idPostulante);
 
         try {
-            ObtenerDatosPersonalesResponseDTO datosCompletos = 
+            ObtenerDatosPersonalesResponseDTO datos =
                 obtenerDatosPersonalesService.obtenerDatosPersonalesCompletos(idPostulante);
-            
-            return ResponseEntity.ok(datosCompletos.getDireccion());
+
+            return ResponseEntity.ok(datos.getDireccion());
 
         } catch (es.altia.bne.common.exception.validation.DataValidationException e) {
             log.error("Validación fallida: {}", e.getMessage());
@@ -187,22 +172,17 @@ public class ObtenerDatosPersonalesController {
             log.error("No encontrado: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"error\": \"Error interno\"}");
+            log.error("Error inesperado: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("{\"error\": \"Error interno\"}");
         }
     }
 
-    // ==================== ENDPOINT 4: DATOS DE DISCAPACIDAD ====================
+    // ==================== ENDPOINT 4: DISCAPACIDAD ====================
 
-    /**
-     * Obtiene los datos de discapacidad del postulante.
-     * 
-     * @param idPostulante ID único del postulante
-     * @return ResponseEntity con DatosDiscapacidadDTO
-     */
     @Operation(
         summary = "Obtener datos de discapacidad del postulante",
-        description = "Retorna información de discapacidad (si está registrada)"
+        description = "Retorna información de discapacidad si existe"
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -219,16 +199,16 @@ public class ObtenerDatosPersonalesController {
     })
     @GetMapping("/{idPostulante}/discapacidad")
     public ResponseEntity<?> obtenerDiscapacidad(
-            @Parameter(description = "ID del postulante", required = true, example = "123")
+            @Parameter(description = "ID del postulante", required = true)
             @PathVariable Long idPostulante) {
 
         log.info("GET /postulante/{}/discapacidad", idPostulante);
 
         try {
-            ObtenerDatosPersonalesResponseDTO datosCompletos = 
+            ObtenerDatosPersonalesResponseDTO datos =
                 obtenerDatosPersonalesService.obtenerDatosPersonalesCompletos(idPostulante);
-            
-            return ResponseEntity.ok(datosCompletos.getDiscapacidad());
+
+            return ResponseEntity.ok(datos.getDiscapacidad());
 
         } catch (es.altia.bne.common.exception.validation.DataValidationException e) {
             log.error("Validación fallida: {}", e.getMessage());
@@ -237,21 +217,16 @@ public class ObtenerDatosPersonalesController {
             log.error("No encontrado: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"error\": \"Error interno\"}");
+            log.error("Error inesperado: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("{\"error\": \"Error interno\"}");
         }
     }
 
     // ==================== ENDPOINT 5: SITIO DE REFERENCIA ====================
 
-    /**
-     * Obtiene el sitio de referencia (cómo se enteró del sitio).
-     * 
-     * @param idPostulante ID único del postulante
-     * @return ResponseEntity con el ID del sitio de referencia
-     */
     @Operation(
-        summary = "Obtener sitio de referencia del postulante",
+        summary = "Obtener sitio de referencia",
         description = "Retorna cómo se enteró del sitio el postulante"
     )
     @ApiResponses(value = {
@@ -262,17 +237,18 @@ public class ObtenerDatosPersonalesController {
     })
     @GetMapping("/{idPostulante}/sitioReferencia")
     public ResponseEntity<?> obtenerSitioReferencia(
-            @Parameter(description = "ID del postulante", required = true, example = "123")
+            @Parameter(description = "ID del postulante", required = true)
             @PathVariable Long idPostulante) {
 
         log.info("GET /postulante/{}/sitioReferencia", idPostulante);
 
         try {
-            ObtenerDatosPersonalesResponseDTO datosCompletos = 
+            ObtenerDatosPersonalesResponseDTO datos =
                 obtenerDatosPersonalesService.obtenerDatosPersonalesCompletos(idPostulante);
-            
-            return ResponseEntity.ok()
-                .body("{\"idSitioReferencia\": " + datosCompletos.getIdSitioReferencia() + "}");
+
+            return ResponseEntity.ok(
+                "{\"idSitioReferencia\": " + datos.getIdSitioReferencia() + "}"
+            );
 
         } catch (es.altia.bne.common.exception.validation.DataValidationException e) {
             log.error("Validación fallida: {}", e.getMessage());
@@ -281,8 +257,51 @@ public class ObtenerDatosPersonalesController {
             log.error("No encontrado: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            log.error("Error: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"error\": \"Error interno\"}");
+            log.error("Error inesperado: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("{\"error\": \"Error interno\"}");
+        }
+    }
+
+    // ==================== ENDPOINT CONSOLIDADO ====================
+
+    @Operation(
+        summary = "Obtener todos los datos personales",
+        description = "Retorna un objeto consolidado con todas las secciones de datos del postulante"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Datos obtenidos exitosamente",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ObtenerDatosPersonalesResponseDTO.class)
+            )
+        ),
+        @ApiResponse(responseCode = "400", description = "ID inválido o nulo"),
+        @ApiResponse(responseCode = "404", description = "Postulante no encontrado"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
+    @GetMapping("/{idPostulante}/datos-personales")
+    public ResponseEntity<ObtenerDatosPersonalesResponseDTO> obtenerDatosPersonalesCompletos(
+            @Parameter(description = "ID del postulante", required = true)
+            @PathVariable Long idPostulante) {
+
+        log.info("GET /postulante/{}/datos-personales", idPostulante);
+
+        try {
+            return ResponseEntity.ok(
+                obtenerDatosPersonalesService.obtenerDatosPersonalesCompletos(idPostulante)
+            );
+        } catch (es.altia.bne.common.exception.validation.DataValidationException e) {
+            log.error("Validación fallida: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (es.altia.bne.common.exception.ResourceNotFoundException e) {
+            log.error("No encontrado: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (es.altia.bne.common.exception.ServiceException e) {
+            log.error("Error de servicio: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

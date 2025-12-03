@@ -22,14 +22,29 @@ public enum CvFormato {
         return extension;
     }
 
+    /**
+     * Convierte un string a CvFormato.
+     * Acepta valores como: "pdf", "word", "doc", "docx".
+     * Si el valor es nulo o no coincide, se devuelve PDF por defecto.
+     */
     public static CvFormato fromString(String value) {
         if (value == null) {
             return PDF;
         }
+
         String cleaned = value.trim().toLowerCase(Locale.ROOT);
+
+        // Aceptamos varios alias para Word
         if (cleaned.equals("word") || cleaned.equals("doc") || cleaned.equals("docx")) {
             return WORD;
         }
+
+        // Aceptamos explícitamente "pdf"
+        if (cleaned.equals("pdf")) {
+            return PDF;
+        }
+
+        // Por defecto, PDF
         return PDF;
     }
 }
